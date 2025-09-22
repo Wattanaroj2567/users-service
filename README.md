@@ -82,10 +82,17 @@ Service นี้มีหน้าที่รับผิดชอบฟีเ
 
 ทำตามขั้นตอนทีละสเต็ปเพื่อตั้งค่าและรัน Service ในเครื่องของคุณ
 
-### Step 1 — Clone the Repository
+### Step 1 — Clone the Repository (Standard) สำหรับใช้งานได้จริง
 
 ```bash
 git clone https://github.com/Wattanaroj2567/users-service.git
+cd users-service
+```
+
+### Step 1 (Alt) — Direct Branch Clone สำหรับผู้พัฒนาให้เริ่มต้นที่นี่เท่านั้น
+คำสั่งนี้จะ Clone โปรเจกต์ทั้งหมดมาที่เครื่องของคุณ โดยจะได้ Branch develop เป็นค่าเริ่มต้น
+```bash
+git clone -b develop https://github.com/Wattanaroj2567/users-service.git
 cd users-service
 ```
 
