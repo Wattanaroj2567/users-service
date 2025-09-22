@@ -82,7 +82,7 @@ Service นี้มีหน้าที่รับผิดชอบฟีเ
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/Wattanaroj2567/users-service
+git clone https://github.com/Wattanaroj2567/users-service.git
 ```
 ```bash
 cd users-service
