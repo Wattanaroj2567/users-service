@@ -58,6 +58,9 @@ Service นี้มีหน้าที่รับผิดชอบฟีเ
 ├── .env.example
 ├── .gitignore
 ├── go.mod
+├── Dockerfile.dev
+├── docker-compose.override.yml
+├── .dockerignore
 └── README.md
 </pre>
 </td>
@@ -73,10 +76,14 @@ Service นี้มีหน้าที่รับผิดชอบฟีเ
 </ul>
 <li><b>.env.example</b>: ไฟล์ตัวอย่างสำหรับ Configuration</li>
 <li><b>.gitignore</b>: ไฟล์กำหนดรายการที่ไม่ต้องนำขึ้น Git Repository</li>
+<li><b>Dockerfile.dev</b>: Dockerfile สำหรับ Dev Mode (ใช้ air เพื่อ hot-reload)</li>
+<li><b>docker-compose.override.yml</b>: Compose ไฟล์สำหรับรัน Users Service + PostgreSQL</li>
+<li><b>.dockerignore</b>: ไฟล์ ignore เพื่อลด context ขณะ build image</li>
 </ul>
 </td>
 </tr>
 </table>
+
 
 ---
 
@@ -151,6 +158,93 @@ go run cmd/api/main.go
 ```
 
 > เมื่อรันคำสั่งนี้ ระบบจะทำการ migrate ตารางที่จำเป็นทั้งหมด และเซิร์ฟเวอร์จะเริ่มที่ `http://localhost:8080`
+
+---
+
+## 🐋 Run with Docker (Recommended)
+
+สำหรับการพัฒนาแบบทีม ควรใช้ Docker เพื่อให้ทุกคนทำงานในสภาพแวดล้อมเดียวกัน โดยไม่ต้องติดตั้ง Go หรือ PostgreSQL ในเครื่อง
+
+### Step 1 — สร้างไฟล์ที่เกี่ยวข้อง
+
+```bash
+touch Dockerfile.dev
+touch docker-compose.override.yml
+touch .dockerignore
+```
+
+### Step 2 — Dockerfile.dev
+
+```dockerfile
+FROM golang:1.22-alpine
+
+RUN apk add --no-cache git bash build-base tzdata ca-certificates \
+ && update-ca-certificates \
+ && go install github.com/cosmtrek/air@latest
+
+WORKDIR /app
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+
+EXPOSE 8080
+CMD ["air"]
+```
+
+### Step 3 — docker-compose.override.yml
+
+```yaml
+version: "3.9"
+services:
+  users-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: gamegear_users_db
+      POSTGRES_USER: dev
+      POSTGRES_PASSWORD: dev
+    ports:
+      - "5432:5432"
+
+  users-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    environment:
+      DATABASE_URL: postgres://dev:dev@users-db:5432/gamegear_users_db?sslmode=disable
+      APPLICATION_PORT: 8080
+      JWT_SECRET_KEY: "supersecretkey"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - users-db
+    volumes:
+      - .:/app
+```
+
+### Step 4 — .dockerignore
+
+```bash
+.git
+.env
+/tmp
+/docs
+/vendor
+**/*.log
+```
+
+### Step 5 — Run with Docker Compose
+
+```bash
+docker compose -f docker-compose.override.yml up --build
+```
+
+หยุดการทำงาน:
+
+```bash
+docker compose -f docker-compose.override.yml down
+```
 
 ---
 
