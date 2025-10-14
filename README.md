@@ -3,10 +3,24 @@
 บริการสำหรับจัดการผู้ใช้และการยืนยันตัวตนทั้งหมดภายในระบบ **GameGear E-commerce**
 เป็นหนึ่งใน microservices ที่ทำงานร่วมกับ **Kong API Gateway**
 
-> 📖 **ดูเอกสารหลักของระบบ**: สำหรับ Kong Gateway setup, Architecture overview และการ integrate ทั้งระบบ → [Main README](../Mini-Project-Golang/README.md)
+> 📖 **ดูเอกสารหลักของระบบ**: สำหรับ Kong Gateway setup, Architecture overview และการ integrate ทั้งระบบ → [Main README](https://github.com/Wattanaroj2567/Mini-Project-Golang)
+
 ---
 
-## 🏛️ Architectural Design & Responsibility
+## 📋 Table of Contents
+
+- [🏛️ ภาพรวมระบบ (System Overview)](#%EF%B8%8F-ภาพรวมระบบ-system-overview)
+- [✨ คุณสมบัติและ Endpoints](#-คุณสมบัติและ-endpoints)
+- [📂 โครงสร้างโปรเจค (Project Structure)](#-โครงสร้างโปรเจค-project-structure)
+- [📦 Module Structure](#-module-structure)
+- [🚀 เริ่มต้นใช้งาน (Getting Started)](#-เริ่มต้นใช้งาน-getting-started)
+- [🔁 Remote Development (ngrok หรือ Tunnel)](#-remote-development-ngrok-หรือ-tunnel)
+- [📝 API Documentation](#-api-documentation)
+- [📞 ติดต่อและสนับสนุน](#-ติดต่อและสนับสนุน)
+
+---
+
+## 🏛️ ภาพรวมระบบ (System Overview)
 
 - เป็น **เจ้าของข้อมูล (Data Owner)** สำหรับตารางผู้ใช้: `users`, `password_reset_tokens`
 - ข้อมูลผู้ใช้ **ไม่ถูกเข้าถึงโดยตรงจาก service อื่น** — ต้องเรียกผ่าน API ของ Users Service เท่านั้น
@@ -14,60 +28,17 @@
 
 ---
 
-## ✅ สิ่งที่ต้องทำ (สำหรับผู้พัฒนา Service นี้)
+## ✨ คุณสมบัติและ Endpoints
 
-> 👨‍💻 **Developer**: ณิชพน มานิตย์
-
-### 📝 ไฟล์ที่ต้องแก้ไข/เขียนโค้ด
-
-คุณต้องเขียนโค้ดเฉพาะใน **2 จุดหลัก**:
-
-#### 1. **`cmd/api/main.go`**
-
-- เริ่มต้น Gin server
-- Setup routes
-- Connect database
-- Middleware configuration
-
-#### 2. **โฟลเดอร์ `internal/`**
-
-| Folder               | ต้องทำ       | หมายเหตุ                          |
-| -------------------- | ------------ | --------------------------------- |
-| ✅ **handlers/**     | ✅ ต้องทำ    | เขียน HTTP handlers (controllers) |
-| ❌ **models/**       | ❌ ไม่ต้องทำ | **PM ทำให้แล้ว** (วรรธนโรจน์)     |
-| ✅ **repositories/** | ✅ ต้องทำ    | เขียน database operations (CRUD)  |
-| ✅ **services/**     | ✅ ต้องทำ    | เขียน business logic              |
-
-#### 3. **ไฟล์อื่นๆ**
-
-- ✅ **`.env`** - ตั้งค่า environment variables
-- ✅ **`go.mod`** - เพิ่ม dependencies ตามต้องการ
-
-### 🚫 ไฟล์ที่ไม่ต้องแก้
-
-- ❌ `internal/models/` - PM ทำให้แล้ว
-- ❌ `README.md` - มีให้แล้ว (แต่สามารถเพิ่มเติมได้)
-
-### 📋 Checklist
-
-- [ ] เขียน `cmd/api/main.go`
-- [ ] เขียน handlers ใน `internal/handlers/`
-- [ ] เขียน repositories ใน `internal/repositories/`
-- [ ] เขียน services ใน `internal/services/`
-- [ ] ตั้งค่า `.env`
-- [ ] ทดสอบ API ด้วย Swagger
-- [ ] ทดสอบผ่าน Kong Gateway
-
----
-
-## ✨ Features & Endpoints
-
-| Feature            | HTTP Method | Path                                                    | Description                           |
-| ------------------ | ----------- | ------------------------------------------------------- | ------------------------------------- |
-| User Registration  | POST        | `/api/auth/register`                                    | ลงทะเบียนผู้ใช้ใหม่                   |
-| Login / Logout     | POST        | `/api/auth/login`, `/api/auth/logout`                   | ส่ง JWT / ยกเลิก session              |
-| Profile Management | GET / PUT   | `/api/user/profile`                                     | ดูและอัปเดตข้อมูลผู้ใช้ (ต้องล็อกอิน) |
-| Password Reset     | POST        | `/api/auth/forgot-password`, `/api/auth/reset-password` | Flow รีเซ็ตรหัสผ่าน                   |
+| Feature                 | Method | Path                         | Auth Required        | Description                                             |
+| ----------------------- | ------ | ---------------------------- | -------------------- | ------------------------------------------------------- |
+| User Registration       | POST   | `/api/auth/register`        | No                   | ลงทะเบียนผู้ใช้ใหม่                                    |
+| Login                   | POST   | `/api/auth/login`           | No                   | เข้าสู่ระบบและรับ JWT token                            |
+| Logout                  | POST   | `/api/auth/logout`          | Yes (Member JWT)     | ออกจากระบบและเพิกถอนโทเคนปัจจุบัน                    |
+| Forgot Password Request | POST   | `/api/auth/forgot-password` | No                   | ขออีเมลสำหรับขั้นตอนรีเซ็ตรหัสผ่าน                    |
+| Reset Password          | POST   | `/api/auth/reset-password`  | No                   | ตั้งรหัสผ่านใหม่ด้วยโทเคนที่ได้รับ                     |
+| View Profile            | GET    | `/api/user/profile`         | Yes (Member JWT)     | ดูรายละเอียดโปรไฟล์ของตนเอง                           |
+| Update Profile          | PUT    | `/api/user/profile`         | Yes (Member JWT)     | แก้ไขข้อมูลส่วนตัว, เปลี่ยนรหัสผ่าน หรือปิดบัญชี      |
 
 นอกจากนี้ ควรมี endpoint สำหรับ **Healthcheck**:
 
@@ -77,7 +48,7 @@ GET /healthz → 200 OK
 
 ---
 
-## 📂 Project Structure (Standard Go Layout)
+## 📂 โครงสร้างโปรเจค (Project Structure)
 
 ```
 .
@@ -86,36 +57,93 @@ GET /healthz → 200 OK
 │       └── main.go
 ├── internal/
 │   ├── handlers/
-│   │   └── user_handler.go
+│   │   ├── auth_handler.go
+│   │   ├── profile_handler.go
+│   │   └── routes.go
 │   ├── services/
-│   │   └── user_service.go
+│   │   ├── auth_service.go
+│   │   ├── profile_service.go
+│   │   └── token_service.go
 │   ├── repositories/
+│   │   ├── password_reset_repository.go
 │   │   └── user_repository.go
 │   └── models/
-│       └── user_model.go
-├── docs/
-│   └── swagger (ไฟล์ที่สร้างโดย swag)
+│       ├── auth_payloads.go
+│       ├── password_reset_token.go
+│       ├── profile_payloads.go
+│       └── user.go
 ├── .env.example
+├── .gitignore
 ├── go.mod
 ├── go.sum
 └── README.md
 ```
 
-คำอธิบาย:
+คำอธิบายไฟล์:
 
-- **cmd/api** — จุดเริ่มต้นของโปรแกรมหลัก (main entry point) สำหรับรันเซิร์ฟเวอร์ API
-- **internal/handlers** — ชั้นรับคำขอ (HTTP Request) และส่งคำตอบ (Response)
-- **internal/services** — ชั้นของ Business Logic ที่ประมวลผลคำขอและควบคุมการทำงานของระบบ
-- **internal/repositories** — ชั้นติดต่อกับฐานข้อมูล เช่น การ Query, Insert, Update, Delete
-- **internal/models** — กำหนดโครงสร้างข้อมูล (Struct) ที่ใช้ภายในระบบและ ORM (GORM Models)
-- **docs/swagger** — เก็บไฟล์เอกสาร API ที่สร้างโดย `swag init` (OpenAPI/Swagger)
+- `cmd/api/main.go` — บูตระบบทั้งหมด, เชื่อมต่อฐานข้อมูล, รัน migration และประกาศ route หลัก
+- `internal/handlers/auth_handler.go` — รับคำขอจาก `/api/auth/*`, แปลง input และเรียก `AuthService`
+- `internal/handlers/profile_handler.go` — จัดการ `/api/user/profile` สำหรับดูและอัปเดตข้อมูลสมาชิก
+- `internal/handlers/routes.go` — รวมการประกาศ Gin route group ทั้ง auth และ profile
+- `internal/services/auth_service.go` — โครง business logic สำหรับ Register/Login/Forgot/Reset/Logout
+- `internal/services/profile_service.go` — โครง service สำหรับ get/update/delete โปรไฟล์
+- `internal/services/token_service.go` — interface สำหรับการออก/เพิกถอน JWT (ยังไม่กำหนด implementation)
+- `internal/repositories/user_repository.go` — ฟังก์ชัน CRUD ต่อฐานข้อมูลตาราง `users`
+- `internal/repositories/password_reset_repository.go` — จัดการตาราง `password_reset_tokens` (สร้าง/ค้นหา/ลบ token)
+- `internal/models/user.go` — GORM model ของผู้ใช้ในระบบ
+- `internal/models/password_reset_token.go` — GORM model สำหรับ token รีเซ็ตรหัสผ่าน
+- `internal/models/auth_payloads.go` — DTO ที่ใช้ bind/response สำหรับ endpoints auth
+- `internal/models/profile_payloads.go` — DTO สำหรับการดูและอัปเดตโปรไฟล์ รวมถึงคำขอปิดบัญชี
 - **.env.example** — ตัวอย่างไฟล์สำหรับตั้งค่าคอนฟิก เช่น Database URL, JWT, Email
-- **Kong Gateway** — จัดการโดย PM (วรรธนโรจน์) ใน admin-service
 - **README.md** — เอกสารอธิบายรายละเอียดการติดตั้งและใช้งาน Service
 
 ---
 
-## 🚀 Getting Started (Local Development)
+## 📦 Module Structure
+
+Service นี้ใช้ Go Module สำหรับจัดการ dependencies:
+
+| Property              | Value                               |
+| --------------------- | ----------------------------------- |
+| **Module Name**       | `github.com/gamegear/users-service` |
+| **Go Version**        | 1.25.1                              |
+| **Main Dependencies** | Gin, GORM, PostgreSQL, JWT          |
+
+### Local Development Setup
+
+สำหรับการพัฒนาในเครื่อง local service นี้ใช้ `replace` directive ใน `go.mod`:
+
+```go
+// ใน admin-service/go.mod และ shop-service/go.mod
+replace github.com/gamegear/users-service => ../users-service
+```
+
+### Dependencies Management
+
+- **Web Framework**: Gin (HTTP router)
+- **Database**: GORM + PostgreSQL driver
+- **Authentication**: JWT tokens
+- **API Documentation**: Postman
+- **Environment**: godotenv for .env files
+- **Password Hashing**: bcrypt
+
+### Import Statements
+
+เมื่อต้องการ import จาก services อื่น ให้ใช้ module name แทน local path:
+
+```go
+// ✅ ถูกต้อง - ใช้ module name
+import "github.com/gamegear/shop-service/internal/models"
+
+// ❌ ผิด - อย่าใช้ local path
+import "../shop-service/internal/models"
+```
+
+**หมายเหตุ**: users-service เป็น base service ที่ไม่ต้อง import จาก services อื่น แต่หากต้องการ import ให้ใช้ module name
+
+---
+
+## 🚀 เริ่มต้นใช้งาน (Getting Started)
 
 ### 1. Clone & เข้าโฟลเดอร์
 
@@ -138,199 +166,409 @@ go mod tidy
 CREATE DATABASE gamegear_users_db;
 ```
 
-### 4. สร้าง `.env` จาก `.env.example`
+### 4. สร้างไฟล์ `.env`
 
-ปรับค่าสำหรับเครื่องคุณ เช่น user, password:
+**สร้างไฟล์ `.env` ใหม่** โดยคัดลอกเนื้อหาจาก `.env.example` และแก้ไขค่าต่างๆ ตามต้องการ:
 
 ```env
-APPLICATION_PORT=8080
-DATABASE_URL="host=localhost user=xxx password=yyy dbname=gamegear_users_db sslmode=disable"
-JWT_SECRET_KEY="your_super_secret"
-EMAIL_HOST="smtp.example.com"
-EMAIL_PORT=587
-EMAIL_USERNAME="you@example.com"
-EMAIL_PASSWORD="password"
+# Application Configuration
+APPLICATION_PORT=8081
+APP_NAME="GameGear Users Service"
+APP_VERSION="1.0.0"
+
+# Database Configuration
+DATABASE_URL="host=localhost user=postgres password=your_password dbname=gamegear_users_db port=5432 sslmode=disable"
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=your_password
+DB_NAME=gamegear_users_db
+
+# JWT Configuration
+JWT_SECRET_KEY="your_super_secret_jwt_key_here_make_it_long_and_secure"
+JWT_EXPIRATION_HOURS=24
+
+# CORS Configuration
 FRONTEND_URL="http://localhost:3000"
+ALLOWED_ORIGINS="http://localhost:3000,http://localhost:8080"
+
+# Email Configuration (สำหรับ Forgot Password)
+EMAIL_HOST="smtp.gmail.com"
+EMAIL_PORT=587
+EMAIL_USERNAME="your_email@gmail.com"
+EMAIL_PASSWORD="your_app_password"
+FROM_EMAIL="noreply@gamegear.com"
+
+# Logging Configuration
+LOG_LEVEL=info
+LOG_FILE="logs/users-service.log"
 ```
 
-### 5. รันโปรเจกต์
+**💡 หมายเหตุ:**
+
+- **JWT_SECRET_KEY**: สร้างเองได้จาก [jwt.io](https://jwt.io) หรือใช้ random string generator
+- **Database Password**: ใช้รหัสผ่าน PostgreSQL ของคุณ
+- **Email Settings**: ใช้ Gmail App Password สำหรับการส่งอีเมล
+- **ไฟล์ `.env.example`**: เก็บไว้เป็น template สำหรับครั้งต่อไป
+
+### 5. ไฟล์ที่ต้องแก้ไข/เขียนโค้ด
+
+> 👨‍💻 **Developer**: ณิชพน มานิตย์
+
+คุณต้องเขียนโค้ดเฉพาะใน **2 จุดหลัก**:
+
+#### 5.1 **`cmd/api/main.go`**
+
+- เริ่มต้น Gin server
+- Setup routes
+- Connect database
+- Middleware configuration
+
+#### 5.2 **โฟลเดอร์ `internal/`**
+
+| Folder               | ต้องทำ       | หมายเหตุ                          |
+| -------------------- | ------------ | --------------------------------- |
+| ✅ **handlers/**     | ✅ ต้องทำ    | เขียน HTTP handlers (controllers) |
+| ❌ **models/**       | ❌ ไม่ต้องทำ | **PM ทำให้แล้ว** (วรรธนโรจน์)     |
+| ✅ **repositories/** | ✅ ต้องทำ    | เขียน database operations (CRUD)  |
+| ✅ **services/**     | ✅ ต้องทำ    | เขียน business logic              |
+
+> 💡 **หมายเหตุ**: ในโค้ดจะมี **TODO comments** บอกว่าต้องทำอะไรบ้าง ให้ทำตามที่ระบุไว้ในโค้ด
+
+#### 5.3 **ไฟล์อื่นๆ**
+
+- ✅ **`.env`** - ตั้งค่า environment variables
+- ✅ **`go.mod`** - เพิ่ม dependencies ตามต้องการ
+
+#### 5.4 **ไฟล์ที่ไม่ต้องแก้**
+
+- ❌ `internal/models/` - PM ทำให้แล้ว
+- ❌ `README.md` - มีให้แล้ว (แต่สามารถเพิ่มเติมได้)
+
+### 6. รันโปรเจกต์
 
 ```bash
 go run cmd/api/main.go
 ```
 
-ตอนเริ่มต้นจะทำการ migrate ตารางอัตโนมัติ และรันที่ `http://localhost:8080`
+ตอนเริ่มต้นจะทำการ migrate ตารางอัตโนมัติ และรันที่ `http://localhost:8081`
+
+### 7. 📋 Checklist
+
+- [ ] เขียน `cmd/api/main.go`
+- [ ] เขียน handlers ใน `internal/handlers/` (ทำตาม TODO comments)
+- [ ] เขียน repositories ใน `internal/repositories/` (ทำตาม TODO comments)
+- [ ] เขียน services ใน `internal/services/` (ทำตาม TODO comments)
+- [ ] ตั้งค่า `.env`
+- [ ] ทดสอบ API ด้วย Postman
+- [ ] ทดสอบผ่าน Kong Gateway
+
+### 8. 🚀 การเอาขึ้น Github (Git Workflow)
+
+#### 8.1 Clone Repository
+
+**ขั้นตอนที่ 1: Clone Repository**
+
+```bash
+git clone https://github.com/Wattanaroj2567/users-service.git
+```
+
+**ผลลัพธ์ที่คาดหวัง:** Repository จะถูกดาวน์โหลดมาในโฟลเดอร์ `users-service`
+
+**ขั้นตอนที่ 2: เข้าไปในโฟลเดอร์**
+
+```bash
+cd users-service
+```
+
+**ผลลัพธ์ที่คาดหวัง:** เปลี่ยน directory ไปยัง `users-service`
+
+**ขั้นตอนที่ 3: ตรวจสอบ branch ปัจจุบัน**
+
+```bash
+git branch
+```
+
+**ผลลัพธ์ที่คาดหวัง:** ควรเห็น `* develop` (develop branch เป็นค่าเริ่มต้น)
+
+#### 8.2 Development & Testing
+
+**ขั้นตอนที่ 4: ตรวจสอบสถานะไฟล์**
+
+```bash
+git status
+```
+
+**ผลลัพธ์ที่คาดหวัง:** แสดงไฟล์ที่แก้ไข (modified files) และไฟล์ใหม่ (untracked files)
+
+**ขั้นตอนที่ 5: เพิ่มไฟล์ที่แก้ไข**
+
+```bash
+git add .
+```
+
+**ผลลัพธ์ที่คาดหวัง:** ไฟล์ทั้งหมดถูกเพิ่มเข้า staging area
+
+**ขั้นตอนที่ 6: Commit การเปลี่ยนแปลง**
+
+```bash
+git commit -m "feat: implement user authentication and profile management"
+```
+
+**ผลลัพธ์ที่คาดหวัง:** แสดงจำนวนไฟล์ที่เปลี่ยนแปลงและ commit hash
+
+#### 8.3 Push to Develop Branch
+
+**ขั้นตอนที่ 7: Push ไปยัง develop branch**
+
+```bash
+git push origin develop
+```
+
+**ผลลัพธ์ที่คาดหวัง:** การ push สำเร็จและแสดง URL ของ repository
+
+#### 8.4 Final Merge to Main (PM ทำ)
+
+```bash
+# PM จะ merge develop ไป main เมื่อทุกอย่างสมบูรณ์
+git checkout main
+git merge develop
+git push origin main
+```
+
+#### 8.5 Branch Strategy
+
+| Branch    | Purpose                | Who       |
+| --------- | ---------------------- | --------- |
+| `develop` | การพัฒนาหลัก (Default) | Developer |
+| `main`    | Production Ready       | PM        |
+
+> 💡 **คำแนะนำ**: เปิดไฟล์โค้ดและดู **TODO comments** ที่มีอยู่แล้ว จะบอกว่าต้องทำอะไรบ้างในแต่ละส่วน
 
 ---
 
-## 🦍 Kong API Gateway Integration
+## 🔁 Remote Development (ngrok หรือ Tunnel)
 
-Service นี้เป็นส่วนหนึ่งของระบบ Microservices ที่ใช้ **Kong Gateway** เป็นจุดเข้าถึงหลัก (API Gateway)
-
-> 👤 **ผู้ดูแล Kong Gateway**: วรรธนโรจน์ บุตรดี (Project Manager)  
-> 💡 **คำแนะนำ**: หากมีปัญหาเกี่ยวกับ Kong setup, Routes หรือ Plugins โปรดติดต่อผู้ดูแล
-
-### 🚀 Quick Start Options
-
-#### Option 1: รันพร้อม Kong + Konga (แนะนำสำหรับ Integration Testing)
-
-```bash
-# จาก root directory (GameGear-Ecommerce/)
-# Kong Gateway จัดการโดย PM ใน admin-service
-# สำหรับการทดสอบ service เดี่ยว ให้ใช้:
-go run cmd/api/main.go
-```
-
-**Services ที่จะรัน:**
-
-- 🦍 Kong Gateway (port 8000, 8001)
-- 🖥️ Konga Admin UI (port 1337)
-- 👤 Users Service (port 8080)
-- 🗄️ PostgreSQL Databases (Kong, Konga, Users)
-
-#### Option 2: รัน Service เดี่ยว (สำหรับ Local Development)
-
-```bash
-# จาก service directory
-go run cmd/api/main.go
-```
-
-**Service ที่จะรัน:**
-
-- 👤 Users Service (port 8080)
-
-**หมายเหตุ:** ต้องมี PostgreSQL database รันอยู่แล้ว หรือใช้ cloud database
-
-### 🌐 การใช้ ngrok สำหรับ External Access
+สำหรับการพัฒนาแบบทีม ให้ใช้ ngrok เพื่อให้เพื่อนร่วมทีมเข้าถึง service นี้:
 
 ```bash
 # รัน service
 go run cmd/api/main.go
 
 # เปิด terminal ใหม่ และรัน ngrok
-ngrok http 8080
+ngrok http 8081
 ```
 
 **ผลลัพธ์:**
 
-- Service รันที่: `http://localhost:8080`
-- External URL: `https://abc123.ngrok.io` (สำหรับ PM เรียกใช้)
+- Service รันที่: `http://localhost:8081`
+- External URL: `https://abc123.ngrok.io` (แชร์ให้เพื่อนร่วมทีม)
+
+> 📖 **ดูรายละเอียดเพิ่มเติม**: [Main README - Remote Development](https://github.com/Wattanaroj2567/Mini-Project-Golang#-remote-development-ngrok-หรือ-tunne)
 
 ---
 
-### 📍 API Endpoints
+## 📝 API Documentation
 
-| Access Method             | URL                                              | Use Case       | Note                      |
-| ------------------------- | ------------------------------------------------ | -------------- | ------------------------- |
-| **Via Kong Gateway**      | `http://localhost:8000/users/*`                  | ✅ Production  | เรียกผ่าน Gateway (แนะนำ) |
-| **Direct Access**         | `http://localhost:8080/*`                        | 🔧 Development | เรียกตรง (Dev/Test only)  |
-| **Swagger UI (via Kong)** | `http://localhost:8000/users/swagger/index.html` | 📖 API Docs    | ผ่าน Gateway              |
-| **Swagger UI (direct)**   | `http://localhost:8080/swagger/index.html`       | 📖 API Docs    | เรียกตรง                  |
+### 2.1 ระบบล็อกอินและลงทะเบียน (Authentication)
 
-### 🔧 Kong Configuration
+| Endpoint            | Method | Auth Required    | Body / Parameters                                                                                                             | Format    |
+| ------------------- | ------ | ---------------- | ----------------------------------------------------------------------------------------------------------------------------- | --------- |
+| `/api/auth/register`| POST   | No               | - username: ชื่อผู้ใช้ (ต้องไม่ซ้ำ)<br>- display_name: ชื่อเล่นที่จะแสดง<br>- email: ต้องเป็นรูปแบบอีเมล<br>- password, confirm_password | JSON Body |
+| `/api/auth/login`   | POST   | No               | - identifier: อีเมลหรือชื่อผู้ใช้สำหรับเข้าสู่ระบบ<br>- password: รหัสผ่าน                                                  | JSON Body |
+| `/api/auth/forgot-password` | POST | No        | - email: ที่ลงทะเบียนไว้ เพื่อรับลิงก์รีเซ็ตรหัสผ่าน                                                                           | JSON Body |
+| `/api/auth/reset-password`  | POST | No        | - token: โทเคนจากอีเมล<br>- new_password: รหัสผ่านใหม่<br>- confirm_password: ยืนยันรหัสผ่านใหม่                              | JSON Body |
+| `/api/auth/logout`  | POST   | Yes (Member JWT) | - Authorization: Bearer {JWT}                                                                                                  | HTTP Header |
 
-หากต้องการตั้งค่า Service นี้ใน Kong Gateway:
+### 2.2 การจัดการข้อมูลบัญชีผู้ใช้ (User Profile)
 
-1. **เปิด Konga UI**: http://localhost:1337
-2. **เพิ่ม Service**:
-   ```
-   Name: users-service
-   Protocol: https
-   Host: abc123.ngrok.io  (URL จาก ngrok ของ ณิชพน)
-   Port: 443
-   Path: /
-   ```
-3. **เพิ่ม Route**:
-   ```
-   Name: users-route
-   Paths: /users
-   Strip Path: false
-   ```
+| Endpoint            | Method | Auth Required    | Body / Parameters                                                                                                                                                                                       | Format                |
+| ------------------- | ------ | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
+| `/api/user/profile` | GET    | Yes (Member JWT) | - Authorization: Bearer {JWT}                                                                                                                                                                           | HTTP Header           |
+| `/api/user/profile` | PUT    | Yes (Member JWT) | - username, display_name, email, profile_image (เมื่ออัปเดตข้อมูลทั่วไป)<br>- old_password, new_password, confirm_password (เมื่อเปลี่ยนรหัสผ่าน)<br>- delete_account_flag (true/false) + password (เมื่อปิดบัญชี) | JSON Body + HTTP Header |
 
-### 🧪 ทดสอบการเชื่อมต่อ
+### 2.3 JSON Request Examples
 
-```bash
-# ทดสอบผ่าน Kong Gateway
-curl http://localhost:8000/users/healthz
+> 🧪 **สำหรับการทดสอบ API**: ใช้ JSON examples ด้านล่างเพื่อทดสอบ API ตาม use case หลัก  
+> 📱 **แนะนำใช้ Postman**: จะช่วยจัดการ Headers และ Body ได้สะดวก
 
-# ทดสอบเรียกตรง (Dev only)
-curl http://localhost:8080/healthz
+#### 2.3.1 Authentication Requests
 
-# ทดสอบ Login via Kong
-curl -X POST http://localhost:8000/users/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123"}'
+**POST http://localhost:8081/api/auth/register**
+
+ใช้สำหรับสร้างบัญชีผู้ใช้ใหม่ พร้อมกำหนดข้อมูลเริ่มต้น
+
+> วางใน Body => Raw (JSON)
+
+```json
+{
+  "username": "tawan123",
+  "display_name": "Tawan Gamer",
+  "email": "tawan@example.com",
+  "password": "password123",
+  "confirm_password": "password123"
+}
 ```
 
-### 📖 เอกสารเพิ่มเติม
+**POST http://localhost:8081/api/auth/login**
 
-สำหรับข้อมูลเพิ่มเติมเกี่ยวกับ Kong Gateway และการตั้งค่าทั้งระบบ:
+ใช้สำหรับเข้าสู่ระบบ โดยรับได้ทั้งอีเมลหรือชื่อผู้ใช้
 
-- **Kong + Konga Setup Guide**: [Main README - Kong Setup](../Mini-Project-Golang/README.md#-quick-start-ติดตั้งและรัน-kong--konga)
-- **System Architecture**: [Main README - Architecture](../Mini-Project-Golang/README.md#%EF%B8%8F-system-architecture-overview)
-- **Ports Summary**: [Main README - Ports](../Mini-Project-Golang/README.md#-ports-summary)
-- **Troubleshooting**: [Main README - Troubleshooting](../Mini-Project-Golang/README.md#-troubleshooting)
+> วางใน Body => Raw (JSON)
 
-> 💡 **หมายเหตุ**: สำหรับการ setup Kong, Konga และ Plugins (CORS, JWT, Rate Limiting) โปรดดูเอกสารหลักที่ [Main README](../Mini-Project-Golang/README.md)
+```json
+{
+  "identifier": "tawan@example.com",
+  "password": "password123"
+}
+```
+
+> ระบบรองรับทั้งอีเมลหรือชื่อผู้ใช้ในฟิลด์ `identifier`
+
+**POST http://localhost:8081/api/auth/forgot-password**
+
+ใช้สำหรับส่งคำขอรับอีเมลรีเซ็ตรหัสผ่าน
+
+> วางใน Body => Raw (JSON)
+
+```json
+{
+  "email": "tawan@example.com"
+}
+```
+
+**POST http://localhost:8081/api/auth/reset-password**
+
+ใช้สำหรับตั้งรหัสผ่านใหม่ด้วยโทเคนที่ได้รับจากอีเมล
+
+> วางใน Body => Raw (JSON)
+
+```json
+{
+  "token": "RESET_TOKEN_HERE",
+  "new_password": "newpassword123",
+  "confirm_password": "newpassword123"
+}
+```
+
+**POST http://localhost:8081/api/auth/logout**
+
+ใช้สำหรับออกจากระบบและยกเลิกโทเคนปัจจุบัน
+
+> วางใน Headers => Key: Authorization, Value: Bearer YOUR_JWT_TOKEN
+
+```text
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+#### 2.3.2 User Profile Requests
+
+> ทุกคำขอจำเป็นต้องแนบ `Authorization: Bearer YOUR_JWT_TOKEN`
+
+**GET http://localhost:8081/api/user/profile**
+
+ใช้สำหรับดึงรายละเอียดโปรไฟล์ของผู้ใช้ที่ล็อกอิน
+
+> วางใน Headers => Key: Authorization, Value: Bearer YOUR_JWT_TOKEN
+
+```text
+Authorization: Bearer YOUR_JWT_TOKEN
+```
+
+**PUT http://localhost:8081/api/user/profile**
+
+ใช้สำหรับแก้ไขข้อมูลโปรไฟล์ เช่น อีเมล ชื่อเล่น และรูปภาพ
+
+> วางใน Headers => Key: Authorization, Value: Bearer YOUR_JWT_TOKEN  
+> วางใน Body => Raw (JSON)
+
+```json
+{
+  "username": "new_tawan123",
+  "display_name": "Tawan Pro Gamer",
+  "email": "new_tawan@example.com",
+  "profile_image": "https://cdn.example.com/u/newpic.png"
+}
+```
+
+**PUT http://localhost:8081/api/user/profile** 
+
+ใช้สำหรับเปลี่ยนรหัสผ่านเดิมเป็นรหัสผ่านใหม่
+
+> วางใน Headers => Key: Authorization, Value: Bearer YOUR_JWT_TOKEN  
+> วางใน Body => Raw (JSON)
+
+```json
+{
+  "old_password": "password123",
+  "new_password": "newpassword123",
+  "confirm_password": "newpassword123"
+}
+```
+
+**PUT http://localhost:8081/api/user/profile**
+
+ใช้สำหรับปิดบัญชีผู้ใช้ โดยต้องยืนยันด้วยรหัสผ่านปัจจุบัน
+
+> วางใน Headers => Key: Authorization, Value: Bearer YOUR_JWT_TOKEN  
+> วางใน Body => Raw (JSON)
+
+```json
+{
+  "delete_account_flag": true,
+  "password": "password123"
+}
+```
+
+### 2.4 Error Responses
+
+**ตัวอย่าง Error Response:**
+
+
+```json
+{
+  "status": "error",
+  "message": "Invalid credentials",
+  "error": "Email or password is incorrect"
+}
+```
+
+**HTTP Status Codes:**
+
+- `200` - Success
+- `400` - Bad Request (ข้อมูลไม่ถูกต้อง)
+- `401` - Unauthorized (ไม่มีสิทธิ์เข้าถึง)
+- `404` - Not Found (ไม่พบข้อมูล)
+- `500` - Internal Server Error (ข้อผิดพลาดของเซิร์ฟเวอร์)
+
+> 🧪 **วิธีทดสอบ**: ใช้ Postman เพื่อส่ง JSON requests ตาม examples ด้านบน และตรวจสอบ response ที่ได้รับ
 
 ---
 
-## 📝 API Documentation (Swagger / OpenAPI)
+## 📞 ติดต่อและสนับสนุน
 
-### ติดตั้ง Swag
+### 👥 ทีมพัฒนา
 
-```bash
-go install github.com/swaggo/swag/cmd/swag@latest
-```
+| Role                | Name              | Contact                                     |
+| ------------------- | ----------------- | ------------------------------------------- |
+| **Developer**       | ณิชพน มานิตย์     | [GitHub](https://github.com/nitchapon66)    |
+| **Project Manager** | วรรธนโรจน์ บุตรดี | [GitHub](https://github.com/Wattanaroj2567) |
 
-### สร้างเอกสาร Swagger
+### 🔗 ลิงก์ที่เกี่ยวข้อง
 
-```bash
-swag init
-```
+- **Main Project**: [Mini-Project-Golang](https://github.com/Wattanaroj2567/Mini-Project-Golang)
+- **Kong Gateway Setup**: [Main README - Kong Setup](https://github.com/Wattanaroj2567/Mini-Project-Golang#-quick-start-ติดตั้งและรัน-kong--konga)
+- **System Architecture**: [Main README - Architecture](https://github.com/Wattanaroj2567/Mini-Project-Golang#%EF%B8%8F-ภาพรวมระบบ-system-overview)
 
-จะสร้างโฟลเดอร์ `docs` และไฟล์ Swagger JSON/YAML ให้อัตโนมัติ
+### 📚 เอกสารเพิ่มเติม
 
-### เปิดใช้งาน Swagger UI
-
-```
-http://localhost:8080/swagger/index.html
-```
+- **Troubleshooting**: [Main README - Troubleshooting](https://github.com/Wattanaroj2567/Mini-Project-Golang#-แก้ไขปัญหา-troubleshooting)
+- **Ports Summary**: [Main README - Ports](https://github.com/Wattanaroj2567/Mini-Project-Golang#-รายการ-ports)
 
 ---
 
-## 🔁 Remote Development (ngrok หรือ Tunnel)
-
-ถ้าคุณอยากให้เพื่อนร่วมทีมหรือฝั่ง admin-service เข้าถึง users-service ผ่าน tunnel:
-
-```bash
-ngrok http 8080
-```
-
-แล้วใช้ URL ที่ ngrok ให้ใน `.env` ของ service อื่น (เช่น `USER_SERVICE_URL=<ngrok-url>`)
-
----
-
-## 🧭 ทำไมต้องใช้ ngrok ร่วมกับ Kong Gateway (กรณีพัฒนาแบบทีม)
-
-ในการพัฒนาแบบทีมที่สมาชิกแต่ละคนรัน service บนเครื่องของตัวเอง เช่น `users-service`, `shop-service`, หรือ `admin-service` ไม่ได้อยู่ใน Docker network เดียวกัน — การสื่อสารตรงผ่านชื่อ service จะทำไม่ได้ เพราะอยู่คนละเครือข่ายกัน
-
-ดังนั้น **ngrok** จึงถูกใช้เพื่อสร้าง tunnel ระหว่างเครื่องนักพัฒนาแต่ละคนให้สื่อสารกันได้ผ่านอินเทอร์เน็ต โดยมีเหตุผลหลักดังนี้:
-
-| เหตุผล                         | รายละเอียด                                                                                                                                              |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 🌍 การทำงานคนละเครื่อง         | เมื่อสมาชิกทีมรัน service ของตนเอง (เช่น คุณรัน users-service แต่เพื่อนรัน admin-service) ต้องใช้ ngrok แชร์ URL ให้กันเพื่อให้เชื่อมต่อได้ผ่าน Gateway |
-| ⚙️ Integration กับ Kong        | Kong สามารถใช้ URL จาก ngrok เป็นปลายทาง service ได้โดยตรง เช่น `USER_SERVICE_URL=https://abc1234.ngrok.io` เพื่อ proxy ไปยังเครื่องเพื่อน              |
-| 🚀 สะดวกต่อการทดสอบ            | ใช้ทดสอบระบบรวม (Integration Test) ระหว่าง service จริง โดยไม่ต้อง deploy ขึ้นเซิร์ฟเวอร์กลาง                                                           |
-| 🎓 ใช้สาธิต/ส่งอาจารย์ได้ทันที | สามารถเปิดระบบในเครื่องแล้วแชร์ให้ผู้สอนหรือผู้ทดสอบเข้ามาเรียก API ได้ผ่านอินเทอร์เน็ต                                                                 |
-
-> 🔸 สรุป: ถ้าพัฒนาใน Docker Compose เดียวกัน → ไม่ต้องใช้ ngrok
-> 🔹 แต่ถ้าอยู่คนละเครื่อง → ใช้ ngrok เพื่อให้ Kong เชื่อมต่อได้ครบทุก service
-
----
-
-## ✅ Summary
+## ✅ สรุป
 
 - README นี้อัปเดตให้สอดคล้องกับ **แนวทางหลักของโปรเจกต์ Mini-Project-Golang**
 - รองรับทั้งการพัฒนา, ทดสอบ และเชื่อมต่อกับ Kong Gateway
-- มีวิธีรันแบบ local, Docker, Swagger, Kong Integration และ Remote Dev พร้อมใช้งานจริง
+- มีวิธีรันแบบ local, Docker, Kong Integration และ Remote Dev พร้อมใช้งานจริง
