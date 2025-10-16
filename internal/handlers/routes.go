@@ -1,5 +1,6 @@
 package handlers
 
+<<<<<<< HEAD
 import (
 	"net/http"
 	"strings"
@@ -49,10 +50,19 @@ func RegisterRoutes(
 	api := router.Group("/api")
 
 	// Authentication routes (public)
+=======
+import "github.com/gin-gonic/gin"
+
+// RegisterRoutes mounts all HTTP routes exposed by users-service following README specification.
+func RegisterRoutes(router *gin.Engine, authHandler *AuthHandler, profileHandler *ProfileHandler) {
+	api := router.Group("/api")
+
+>>>>>>> ed92ccd7167a49a8a8cf46a13d425b1d5fd62b92
 	auth := api.Group("/auth")
 	{
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
+<<<<<<< HEAD
 		auth.POST("/forgot-password", authHandler.ForgotPassword)
 		auth.POST("/reset-password", authHandler.ResetPassword)
 		auth.POST("/logout", AuthMiddleware(tokenService), authHandler.Logout)
@@ -61,8 +71,20 @@ func RegisterRoutes(
 	// User profile routes (protected by AuthMiddleware)
 	user := api.Group("/user")
 	user.Use(AuthMiddleware(tokenService))
+=======
+		auth.POST("/logout", authHandler.Logout)
+		auth.POST("/forgot-password", authHandler.ForgotPassword)
+		auth.POST("/reset-password", authHandler.ResetPassword)
+	}
+
+	user := api.Group("/user")
+>>>>>>> ed92ccd7167a49a8a8cf46a13d425b1d5fd62b92
 	{
 		user.GET("/profile", profileHandler.GetProfile)
 		user.PUT("/profile", profileHandler.UpdateProfile)
 	}
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> ed92ccd7167a49a8a8cf46a13d425b1d5fd62b92
