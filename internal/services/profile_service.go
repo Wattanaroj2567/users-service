@@ -2,7 +2,6 @@ package services
 
 import (
 	"context"
-<<<<<<< HEAD
 	"errors"
 	"fmt"
 
@@ -17,37 +16,21 @@ var (
 )
 
 // ProfileService defines the interface for profile management business logic.
-=======
-
-	"github.com/gamegear/users-service/internal/models"
-	"github.com/gamegear/users-service/internal/repositories"
-)
-
-// ProfileService encapsulates member profile use cases.
->>>>>>> ed92ccd7167a49a8a8cf46a13d425b1d5fd62b92
 type ProfileService interface {
 	GetProfile(ctx context.Context, userID uint) (*models.ProfileResponse, error)
 	UpdateProfile(ctx context.Context, userID uint, req models.UpdateProfileRequest) (*models.ProfileResponse, error)
 }
 
-<<<<<<< HEAD
 // profileService is the implementation of the ProfileService interface.
-=======
->>>>>>> ed92ccd7167a49a8a8cf46a13d425b1d5fd62b92
 type profileService struct {
 	userRepo repositories.UserRepository
 }
 
-<<<<<<< HEAD
 // NewProfileService creates a new ProfileService.
-=======
-// NewProfileService constructs a profile service instance.
->>>>>>> ed92ccd7167a49a8a8cf46a13d425b1d5fd62b92
 func NewProfileService(userRepo repositories.UserRepository) ProfileService {
 	return &profileService{userRepo: userRepo}
 }
 
-<<<<<<< HEAD
 // GetProfile retrieves a user's profile information.
 func (s *profileService) GetProfile(ctx context.Context, userID uint) (*models.ProfileResponse, error) {
 	user, err := s.userRepo.FindByID(ctx, userID)
@@ -119,14 +102,3 @@ func (s *profileService) UpdateProfile(ctx context.Context, userID uint, req mod
 
 	return s.GetProfile(ctx, userID)
 }
-=======
-func (s *profileService) GetProfile(ctx context.Context, userID uint) (*models.ProfileResponse, error) {
-	// TODO: implement profile lookup and mapping
-	return nil, nil
-}
-
-func (s *profileService) UpdateProfile(ctx context.Context, userID uint, req models.UpdateProfileRequest) (*models.ProfileResponse, error) {
-	// TODO: implement profile update including password change and delete-account flag
-	return nil, nil
-}
->>>>>>> ed92ccd7167a49a8a8cf46a13d425b1d5fd62b92
