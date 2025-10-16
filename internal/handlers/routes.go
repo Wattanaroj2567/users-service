@@ -11,7 +11,7 @@ import (
 // AuthMiddleware creates a gin middleware for JWT authentication.
 // It extracts the token from the "Authorization" header, validates it,
 // and sets the userID and userRole in the context for downstream handlers.
-func AuthMiddleware(tokenService services.TokenService) gin.HandlerFunc {
+func AuthMiddleware(tokenService services.TokenService, allowedRoles ...string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -32,10 +32,24 @@ func AuthMiddleware(tokenService services.TokenService) gin.HandlerFunc {
 			return
 		}
 
+		if len(allowedRoles) > 0 && !roleAllowed(claims.Role, allowedRoles) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Forbidden"})
+			return
+		}
+
 		c.Set("userID", claims.UserID)
 		c.Set("userRole", claims.Role)
 		c.Next()
 	}
+}
+
+func roleAllowed(role string, allowed []string) bool {
+	for _, r := range allowed {
+		if r == role {
+			return true
+		}
+	}
+	return false
 }
 
 // RegisterRoutes mounts all HTTP routes for the service.
@@ -64,5 +78,15 @@ func RegisterRoutes(
 	{
 		user.GET("/profile", profileHandler.GetProfile)
 		user.PUT("/profile", profileHandler.UpdateProfile)
+	}
+
+	// Admin-specific authentication routes
+	admin := api.Group("/admin")
+	{
+		admin.POST("/register", authHandler.RegisterAdmin)
+		admin.POST("/login", authHandler.LoginAdmin)
+		admin.POST("/forgot-password", authHandler.ForgotPasswordAdmin)
+		admin.POST("/reset-password", authHandler.ResetPasswordAdmin)
+		admin.POST("/logout", AuthMiddleware(tokenService, "admin"), authHandler.LogoutAdmin)
 	}
 }

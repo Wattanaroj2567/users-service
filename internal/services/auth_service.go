@@ -19,15 +19,20 @@ var (
 	ErrUserAlreadyExists     = errors.New("user with this email or username already exists")
 	ErrPasswordMismatch      = errors.New("passwords do not match")
 	ErrTokenInvalidOrExpired = errors.New("token is invalid or has expired")
+	ErrUnauthorizedRole      = errors.New("user does not have required role")
 )
 
 // AuthService defines the interface for authentication-related business logic.
 type AuthService interface {
 	Register(ctx context.Context, req models.RegisterRequest) (*models.AuthResponse, error)
+	RegisterAdmin(ctx context.Context, req models.RegisterRequest) (*models.AuthResponse, error)
 	Login(ctx context.Context, req models.LoginRequest) (*models.AuthResponse, error)
+	LoginAdmin(ctx context.Context, req models.LoginRequest) (*models.AuthResponse, error)
 	Logout(ctx context.Context, token string) error
 	ForgotPassword(ctx context.Context, req models.ForgotPasswordRequest) error
+	ForgotPasswordAdmin(ctx context.Context, req models.ForgotPasswordRequest) error
 	ResetPassword(ctx context.Context, req models.ResetPasswordRequest) error
+	ResetPasswordAdmin(ctx context.Context, req models.ResetPasswordRequest) error
 }
 
 // authService is the implementation of the AuthService interface.
@@ -50,8 +55,17 @@ func NewAuthService(
 	}
 }
 
-// Register orchestrates the user registration process.
+// Register orchestrates the user registration process for members.
 func (s *authService) Register(ctx context.Context, req models.RegisterRequest) (*models.AuthResponse, error) {
+	return s.registerWithRole(ctx, req, "member")
+}
+
+// RegisterAdmin creates a new administrator account.
+func (s *authService) RegisterAdmin(ctx context.Context, req models.RegisterRequest) (*models.AuthResponse, error) {
+	return s.registerWithRole(ctx, req, "admin")
+}
+
+func (s *authService) registerWithRole(ctx context.Context, req models.RegisterRequest, role string) (*models.AuthResponse, error) {
 	if req.Password != req.ConfirmPassword {
 		return nil, ErrPasswordMismatch
 	}
@@ -74,7 +88,7 @@ func (s *authService) Register(ctx context.Context, req models.RegisterRequest) 
 		DisplayName:  req.DisplayName,
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
-		Role:         "member",
+		Role:         role,
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -92,12 +106,25 @@ func (s *authService) Register(ctx context.Context, req models.RegisterRequest) 
 
 // Login orchestrates the user login process.
 func (s *authService) Login(ctx context.Context, req models.LoginRequest) (*models.AuthResponse, error) {
+	return s.loginWithRole(ctx, req, "")
+}
+
+// LoginAdmin authenticates an administrator.
+func (s *authService) LoginAdmin(ctx context.Context, req models.LoginRequest) (*models.AuthResponse, error) {
+	return s.loginWithRole(ctx, req, "admin")
+}
+
+func (s *authService) loginWithRole(ctx context.Context, req models.LoginRequest, requiredRole string) (*models.AuthResponse, error) {
 	user, err := s.userRepo.FindByEmailOrUsername(ctx, req.Identifier)
 	if err != nil {
 		return nil, fmt.Errorf("error finding user: %w", err)
 	}
 	if user == nil {
 		return nil, ErrInvalidCredentials
+	}
+
+	if requiredRole != "" && user.Role != requiredRole {
+		return nil, ErrUnauthorizedRole
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password))
@@ -122,6 +149,15 @@ func (s *authService) Logout(ctx context.Context, token string) error {
 
 // ForgotPassword orchestrates the password reset initiation process.
 func (s *authService) ForgotPassword(ctx context.Context, req models.ForgotPasswordRequest) error {
+	return s.forgotPasswordWithRole(ctx, req, "")
+}
+
+// ForgotPasswordAdmin initiates password reset for administrators.
+func (s *authService) ForgotPasswordAdmin(ctx context.Context, req models.ForgotPasswordRequest) error {
+	return s.forgotPasswordWithRole(ctx, req, "admin")
+}
+
+func (s *authService) forgotPasswordWithRole(ctx context.Context, req models.ForgotPasswordRequest, requiredRole string) error {
 	user, err := s.userRepo.FindByEmailOrUsername(ctx, req.Email)
 	if err != nil {
 		return fmt.Errorf("error finding user: %w", err)
@@ -129,6 +165,10 @@ func (s *authService) ForgotPassword(ctx context.Context, req models.ForgotPassw
 	if user == nil {
 		log.Printf("Password reset requested for non-existent email: %s", req.Email)
 		return nil
+	}
+
+	if requiredRole != "" && user.Role != requiredRole {
+		return ErrUnauthorizedRole
 	}
 
 	resetToken := &models.PasswordResetToken{
@@ -152,6 +192,15 @@ func (s *authService) ForgotPassword(ctx context.Context, req models.ForgotPassw
 
 // ResetPassword orchestrates the final step of the password reset process.
 func (s *authService) ResetPassword(ctx context.Context, req models.ResetPasswordRequest) error {
+	return s.resetPasswordWithRole(ctx, req, "")
+}
+
+// ResetPasswordAdmin completes password reset for administrators.
+func (s *authService) ResetPasswordAdmin(ctx context.Context, req models.ResetPasswordRequest) error {
+	return s.resetPasswordWithRole(ctx, req, "admin")
+}
+
+func (s *authService) resetPasswordWithRole(ctx context.Context, req models.ResetPasswordRequest, requiredRole string) error {
 	if req.NewPassword != req.ConfirmPassword {
 		return ErrPasswordMismatch
 	}
@@ -169,6 +218,10 @@ func (s *authService) ResetPassword(ctx context.Context, req models.ResetPasswor
 	user, err := s.userRepo.FindByID(ctx, resetToken.UserID)
 	if err != nil {
 		return ErrUserNotFound
+	}
+
+	if requiredRole != "" && user.Role != requiredRole {
+		return ErrUnauthorizedRole
 	}
 
 	newHashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
