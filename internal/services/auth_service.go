@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gamegear/users-service/internal/models"
@@ -78,13 +79,18 @@ func (s *authService) registerWithRole(ctx context.Context, req models.RegisterR
 		return nil, ErrUserAlreadyExists
 	}
 
+	username, err := s.resolveUsername(ctx, req.Username, req.Email)
+	if err != nil {
+		return nil, err
+	}
+
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, fmt.Errorf("could not hash password: %w", err)
 	}
 
 	user := &models.User{
-		Username:     req.Username,
+		Username:     username,
 		DisplayName:  req.DisplayName,
 		Email:        req.Email,
 		PasswordHash: string(hashedPassword),
@@ -102,6 +108,34 @@ func (s *authService) registerWithRole(ctx context.Context, req models.RegisterR
 
 	user.PasswordHash = ""
 	return &models.AuthResponse{User: user, Token: token}, nil
+}
+
+func (s *authService) resolveUsername(ctx context.Context, requested, email string) (string, error) {
+	base := strings.TrimSpace(requested)
+	if base == "" {
+		if at := strings.Index(email, "@"); at > 0 {
+			base = email[:at]
+		} else {
+			base = email
+		}
+	}
+	if base == "" {
+		base = "admin"
+	}
+
+	candidate := base
+	suffix := 0
+	for {
+		existing, err := s.userRepo.FindByEmailOrUsername(ctx, candidate)
+		if err != nil {
+			return "", err
+		}
+		if existing == nil {
+			return candidate, nil
+		}
+		suffix++
+		candidate = fmt.Sprintf("%s%d", base, suffix)
+	}
 }
 
 // Login orchestrates the user login process.

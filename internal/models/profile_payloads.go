@@ -11,13 +11,12 @@ type ProfileResponse struct {
 
 // UpdateProfileRequest captures editable profile fields.
 type UpdateProfileRequest struct {
-	Username          string `json:"username"`
-	DisplayName       string `json:"display_name"`
-	Email             string `json:"email"`
-	ProfileImage      string `json:"profile_image"`
-	OldPassword       string `json:"old_password"`
-	NewPassword       string `json:"new_password"`
-	ConfirmPassword   string `json:"confirm_password"`
-	DeleteAccountFlag bool   `json:"delete_account_flag"`
-	Password          string `json:"password"` // used when DeleteAccountFlag = true
+	Username        string `json:"username"`
+	DisplayName     string `json:"display_name"`
+	Email           string `json:"email"`
+	ProfileImage    string `json:"profile_image"`
+	OldPassword     string `json:"old_password"`
+	NewPassword     string `json:"new_password"`
+	ConfirmPassword string `json:"confirm_password"`
+	Password        string `json:"password"`
 }

@@ -19,6 +19,7 @@ var (
 type ProfileService interface {
 	GetProfile(ctx context.Context, userID uint) (*models.ProfileResponse, error)
 	UpdateProfile(ctx context.Context, userID uint, req models.UpdateProfileRequest) (*models.ProfileResponse, error)
+	DeleteAccount(ctx context.Context, userID uint, password string) error
 }
 
 // profileService is the implementation of the ProfileService interface.
@@ -56,20 +57,6 @@ func (s *profileService) UpdateProfile(ctx context.Context, userID uint, req mod
 		return nil, err
 	}
 
-	// Case 1: Delete account
-	if req.DeleteAccountFlag {
-		if req.Password == "" {
-			return nil, ErrPasswordRequired
-		}
-		if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(req.Password)); err != nil {
-			return nil, ErrInvalidCredentials
-		}
-		if err := s.userRepo.Delete(ctx, userID); err != nil {
-			return nil, fmt.Errorf("failed to delete account: %w", err)
-		}
-		return nil, nil
-	}
-
 	// Case 2: Change password
 	if req.NewPassword != "" {
 		if req.OldPassword == "" || req.ConfirmPassword == "" {
@@ -101,4 +88,26 @@ func (s *profileService) UpdateProfile(ctx context.Context, userID uint, req mod
 	}
 
 	return s.GetProfile(ctx, userID)
+}
+
+// DeleteAccount removes a user after verifying the password.
+func (s *profileService) DeleteAccount(ctx context.Context, userID uint, password string) error {
+	if password == "" {
+		return ErrPasswordRequired
+	}
+
+	user, err := s.userRepo.FindByID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)); err != nil {
+		return ErrInvalidCredentials
+	}
+
+	if err := s.userRepo.Delete(ctx, userID); err != nil {
+		return fmt.Errorf("failed to delete account: %w", err)
+	}
+
+	return nil
 }
